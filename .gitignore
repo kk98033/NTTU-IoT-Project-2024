@@ -4,3 +4,9 @@ venv/
 .env
 # Editor history
 .history/
+
+.mp3
+
+__pycache__/
+
+.wav
