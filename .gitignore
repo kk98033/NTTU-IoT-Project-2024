@@ -1,5 +1,6 @@
 # Python virtual environment
 venv/
+venv3.12/
 # Environment variables
 .env
 # Editor history
