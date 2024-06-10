@@ -5,8 +5,8 @@ venv/
 # Editor history
 .history/
 
-.mp3
+*.mp3
 
 __pycache__/
 
-.wav
+*.wav
