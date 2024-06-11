@@ -8,6 +8,7 @@ import argparse
 import threading
 import queue
 import time
+import requests
 from dotenv import load_dotenv
 import wave
 from pathlib import Path
@@ -103,11 +104,14 @@ def send_data_to_openai_tts(text):
         # with open(speech_file_path, 'wb') as f:
         #     f.write(response['audio_content'])
         print(f"Speech saved to {speech_file_path}")
+        play_new_audio()
     except Exception as e:
         print(f"Error occurred: {e}")
 
 def process_user_audio_response():
     stt = send_data_to_openai_stt('recorded_audio.wav')
+    # send_data_to_openai_tts(stt) # debug
+    # return
     if not stt:
         print('Failed to get stt')
         return
@@ -119,6 +123,11 @@ def process_user_audio_response():
 
     send_data_to_openai_tts(assistant_response)
     return
+
+def play_new_audio():
+    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'speech.mp3'})
+    print(response.status_code, response.text)
+
 
 # Run capture loop continuously, checking for wakewords
 if __name__ == "__main__":
