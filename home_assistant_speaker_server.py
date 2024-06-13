@@ -1,7 +1,5 @@
 from flask import Flask, send_from_directory, render_template_string, request
 from flask_socketio import SocketIO, emit
-import threading
-import time
 import re
 
 app = Flask(__name__)
@@ -27,37 +25,47 @@ def index():
           <source id="audioSource" src="/speech.mp3" type="audio/mpeg">
           Your browser does not support the audio element.
         </audio>
-        <div id="youtubePlayer" style="display:none;">
+        <div id="youtubePlayer" style="display:block;">
           <video id="youtubeIframe" playsinline controls></video>
+        </div>
+        <div id="silentVideoPlayer" style="display:none;">
+          <audio id="silentAudioPlayer" loop>
+            <source id="silentAudioSource" src="/silent.mp3" type="audio/mpeg">
+          </audio>
         </div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
         <script src="https://cdn.plyr.io/3.6.8/plyr.polyfilled.js"></script>
         <script>
           var socket = io.connect('http://' + document.domain + ':' + location.port);
-          var silentAudio = '/silent.mp3'; // 無聲音頻的路徑
-          var player;
+          var youtubePlayer, audioPlayer, silentAudioPlayer;
 
           document.addEventListener('DOMContentLoaded', () => {
-            player = new Plyr('#youtubeIframe', {
+            youtubePlayer = new Plyr('#youtubeIframe', {
               autoplay: true,
               controls: ['play', 'progress', 'volume', 'fullscreen']
             });
 
-            player.on('ended', function() {
-              console.log('Video ended, playing silent audio');
-              var audioPlayer = document.getElementById('audioPlayer');
-              var audioSource = document.getElementById('audioSource');
-              var youtubePlayer = document.getElementById('youtubePlayer');
-              youtubePlayer.style.display = 'none';
-              audioSource.src = silentAudio;
-              audioPlayer.style.display = 'block';
-              audioPlayer.load();
-              audioPlayer.play().then(() => {
+            silentAudioPlayer = document.getElementById('silentAudioPlayer');
+
+            youtubePlayer.on('ended', function() {
+              console.log('YouTube video ended');
+              playSilentAudio();
+            });
+
+            audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.addEventListener('ended', function() {
+              console.log('Audio ended');
+              playSilentAudio();
+            });
+
+            function playSilentAudio() {
+              document.getElementById('silentVideoPlayer').style.display = 'block';
+              silentAudioPlayer.play().then(() => {
                 console.log('Silent audio playing');
               }).catch(error => {
                 console.error('Error playing silent audio:', error);
               });
-            });
+            }
           });
 
           socket.on('connect', function() {
@@ -66,53 +74,33 @@ def index():
 
           socket.on('new_audio', function(data) {
             console.log('New audio file available');
-            var audioPlayer = document.getElementById('audioPlayer');
-            var audioSource = document.getElementById('audioSource');
-            var youtubePlayer = document.getElementById('youtubePlayer');
-
             if (data.type === 'mp3') {
-              if (player) {
-                player.stop();
-              }
-              youtubePlayer.style.display = 'none';
+              var audioSource = document.getElementById('audioSource');
               audioSource.src = data.file + '?rand=' + Math.random(); // 防止緩存
-              audioPlayer.style.display = 'block';
               audioPlayer.load();
               audioPlayer.play().then(() => {
                 console.log('Audio playing');
+                document.getElementById('silentVideoPlayer').style.display = 'none';
+                silentAudioPlayer.pause();
               }).catch(error => {
                 console.error('Error playing audio:', error);
               });
             } else if (data.type === 'youtube') {
-              audioPlayer.pause();
-              audioPlayer.style.display = 'none';
-              youtubePlayer.style.display = 'block';
-              player.source = {
+              youtubePlayer.source = {
                 type: 'video',
                 sources: [{
                   src: data.videoId,
                   provider: 'youtube',
                 }]
               };
-              player.muted = false;
-              player.play().then(() => {
+              youtubePlayer.play().then(() => {
                 console.log('YouTube video playing');
+                document.getElementById('silentVideoPlayer').style.display = 'none';
+                silentAudioPlayer.pause();
               }).catch(error => {
                 console.error('Error playing YouTube video:', error);
               });
             }
-          });
-
-          document.getElementById('audioPlayer').addEventListener('ended', function() {
-            var audioPlayer = document.getElementById('audioPlayer');
-            var audioSource = document.getElementById('audioSource');
-            audioSource.src = silentAudio;
-            audioPlayer.load();
-            audioPlayer.play().then(() => {
-              console.log('Silent audio playing');
-            }).catch(error => {
-              console.error('Error playing silent audio:', error);
-            });
           });
 
           if ('serviceWorker' in navigator) {
