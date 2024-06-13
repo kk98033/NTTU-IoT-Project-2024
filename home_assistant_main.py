@@ -138,6 +138,7 @@ def stream_audio_from_api(uri, save_path):
                 audio_file.write(chunk)
         
         print(f"Audio saved to {save_path}")
+        play_new_audio()
     
     except requests.exceptions.RequestException as e:
         print(f"Request error: {e}")
