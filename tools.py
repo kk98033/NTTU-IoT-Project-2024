@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
+from youtubesearchpython import VideosSearch
 
 # load .env file
 load_dotenv()
@@ -107,6 +108,27 @@ def search_google(parameters):
             return ""
     result = web_search(query)
     return result
+
+def search_youtube_and_play_first(parameters):
+    max_results=1
+    api_url='http://localhost:5000/switch_audio'
+    query = parameters['query']
+    
+    # 搜尋 YouTube 影片
+    videos_search = VideosSearch(query, limit=max_results)
+    results = videos_search.result()['result']
+    
+    if results:
+        first_video_url = results[0]['link']
+        print(f"Playing video: {first_video_url}")
+
+        # 發送 POST 請求來切換到 YouTube 影片
+        response = requests.post(api_url, json={'file': first_video_url, 'type': 'youtube'})
+        print(response.status_code, response.text)
+        return first_video_url
+    else:
+        print("No videos found.")
+        return "No videos found."
 
 def get_weather_info(location):
     payload = {
