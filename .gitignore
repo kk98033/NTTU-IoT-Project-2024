@@ -16,3 +16,5 @@ __pycache__/
 rnnoise/
 denoiser/
 測試程式碼(超級亂)/
+
+assistant_functions.py
