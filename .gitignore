@@ -7,6 +7,8 @@ myenv/
 # Editor history
 .history/
 
+.DS_Store
+
 *.mp3
 *.wav
 *.ogg

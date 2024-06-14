@@ -61,6 +61,15 @@ def turn_mic_off():
     }
     return call_node_red_api('mic_off', payload)
 
+def toggle_switch():
+    ''' 用於開啟/關閉房間電燈開關 '''
+    payload = {
+        'switch': 'toggle',
+    }
+    call_node_red_api('toggle_switch', payload)
+    
+    return "已經撥動電燈開關"
+
 def search_google(parameters):
     query = parameters['query']
 
@@ -238,3 +247,7 @@ def play_music_track(song):
         'song': song,
     }
     return call_node_red_api('play_music', payload)
+
+if __name__ == '__main__':
+    turn_mic_on()
+    toggle_switch()
