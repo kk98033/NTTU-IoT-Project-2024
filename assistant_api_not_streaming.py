@@ -6,7 +6,7 @@ from typing_extensions import override
 from openai import AssistantEventHandler
 import requests
 
-from tools import call_beep, turn_mic_on, turn_mic_off, search_google, get_weather_info, play_music_track, search_youtube_and_play_first
+from tools import call_beep, turn_mic_on, turn_mic_off, search_google, get_weather_forecast, play_music_track, search_youtube_and_play_first
 
 # 加載 .env 文件
 load_dotenv()
@@ -23,7 +23,7 @@ def process_tool_calls(required_action):
     tool_functions = {
         "toggle_light": lambda tool: "電燈已開啟",
         "search_google": lambda params: search_google(params),
-        "get_weather_info": lambda params: get_weather_info(params),
+        "get_weather_forecast": lambda params: get_weather_forecast(),
         "play_music_track": lambda params: play_music_track(params),
         "search_youtube_and_play_first": lambda params: search_youtube_and_play_first(params)
     }
@@ -39,7 +39,6 @@ def process_tool_calls(required_action):
                 tool_outputs.append({"tool_call_id": tool.id, "output": result})
             except Exception as e:
                 print(f"Failed to process tool {tool.function.name}: {e}")
-
     return tool_outputs
 
 
@@ -133,7 +132,7 @@ if __name__ == '__main__':
     assistant_id = "asst_CAnTShQDTVvObtJyPbNB04UP"
     thread = client.beta.threads.create()
     thread_id = thread.id  # 取得新創建的 thread 的 ID
-    message_content = "幫我播放 最強少女jelee"
+    message_content = "今天天氣如何"
 
     # message_content = input()
-    send_message_to_assistant(assistant_id, thread_id, message_content)
+    print(send_message_to_assistant(assistant_id, thread_id, message_content))

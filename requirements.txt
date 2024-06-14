@@ -41,6 +41,7 @@ onnxruntime==1.18.0
 openai==1.32.0
 openwakeword==0.6.0
 packaging==24.0
+paho-mqtt==2.1.0
 pillow==10.3.0
 platformdirs==4.2.2
 pooch==1.8.2

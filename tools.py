@@ -1,8 +1,10 @@
 # tools.py
 
 import requests
+from datetime import datetime
 from bs4 import BeautifulSoup
 import os
+import json
 from dotenv import load_dotenv
 from youtubesearchpython import VideosSearch
 
@@ -130,11 +132,106 @@ def search_youtube_and_play_first(parameters):
         print("No videos found.")
         return "No videos found."
 
-def get_weather_info(location):
-    payload = {
-        'location': location,
-    }
-    return call_node_red_api('get_weather', payload)
+def get_weather_forecast():
+    def get_location(api_key, lat, lng):
+        # 建立請求的 URL
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={api_key}&language=zh-TW"
+        
+        # 發送請求到 Geocoding API
+        response = requests.get(url)
+        
+        # 獲取返回的 JSON 資料
+        data = response.json()
+        
+        city = None
+        district = None
+        
+        # 檢查是否有有效的返回結果
+        if data['status'] == 'OK':
+            # 遍歷返回結果的地址組件，查找縣市和區域信息
+            for component in data['results'][0]['address_components']:
+                if 'administrative_area_level_1' in component['types']:
+                    city = component['long_name']
+                if 'administrative_area_level_3' in component['types']:
+                    district = component['long_name']
+            return city, district
+        else:
+            return None, None
+
+    def call_weather_forecast_API(city="臺東縣"):
+        url = "https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001"
+        params = {
+            "Authorization": os.getenv('WEATHER_API_KEY'),
+            "locationName": city
+        }
+
+        response = requests.get(url, params=params)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # print(data)
+            return data
+        else:
+            return None
+
+
+    def parse_latest_weather_data(weather_info):
+        locations_data = []
+
+        locations = weather_info.get('records', {}).get('location', [])
+        for loc in locations:
+            location_data = {
+                "locationName": loc.get('locationName', ''),
+                "weatherElements": []
+            }
+
+            for element in loc.get('weatherElement', []):
+                latest_time_info = max(
+                    element.get('time', []),
+                    key=lambda x: datetime.strptime(x['startTime'], '%Y-%m-%d %H:%M:%S') if x.get('startTime') else datetime.min
+                )
+
+                element_data = {
+                    "elementName": element.get('elementName', ''),
+                    "description": element.get('description', ''),
+                    "latestTime": latest_time_info.get('startTime', ''),
+                    "endTime": latest_time_info.get('endTime', ''),
+                    "dataTime": latest_time_info.get('dataTime', ''),
+                    "parameter": latest_time_info.get('parameter', {})
+                }
+
+                location_data["weatherElements"].append(element_data)
+
+            locations_data.append(location_data)
+
+        return {
+            "datasetDescription": weather_info.get('records', {}).get('datasetDescription', ''),
+            "locationsName": weather_info.get('records', {}).get('locationsName', ''),
+            "locationsData": locations_data
+        }
+
+    # 你的 Google Maps API 金鑰
+    google_maps_api_key = os.getenv('GOOGLE_MAP_API_KEY')
+    
+    # TODO: 使用 mqtt server 最新的經緯度資訊：
+    latitude = 25.0330
+    longitude = 121.5654
+    
+    # 獲取縣市和區域信息
+    city, district = get_location(google_maps_api_key, latitude, longitude)
+    city = city.replace('台', '臺')
+    # print(f"這個位置在台灣的: {city} {district}")
+    
+    # 如果成功獲取縣市信息，則查詢天氣預報
+    if city:
+        weather_info = call_weather_forecast_API(city=city)
+        if weather_info:
+            parsed_data = parse_latest_weather_data(weather_info)
+            return json.dumps(parsed_data, ensure_ascii=False, indent=4)
+        else:
+            return "Failed to retrieve weather data"
+    else:
+        return "Failed to retrieve location information"
 
 def play_music_track(song):
     payload = {
