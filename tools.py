@@ -5,14 +5,41 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 import os
 import json
+import time
 from dotenv import load_dotenv
 from youtubesearchpython import VideosSearch
+import paho.mqtt.client as mqtt
 
 # load .env file
 load_dotenv()
 
 # get API key from .env file
 os.environ["google_search_api_key"] = os.getenv('google_search_api_key')
+
+# MQTT 設定
+MQTT_BROKER = "34.168.176.224"
+MQTT_PORT = 1883
+MQTT_KEEPALIVE_INTERVAL = 60
+
+client = mqtt.Client()
+
+def on_connect(client, userdata, flags, rc):
+    if rc == 0:
+        print("Connected successfully!")
+    else:
+        print(f"Connection failed with code {rc}")
+
+def on_publish(client, userdata, mid):
+    print("Message published")
+
+# 設定回調函數
+client.on_connect = on_connect
+client.on_publish = on_publish
+
+# 連接 MQTT 伺服器
+client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE_INTERVAL)
+client.loop_start()
+
 
 def call_node_red_api(endpoint, payload):
     url = f'http://127.0.0.1:1880/{endpoint}'
@@ -50,16 +77,10 @@ def call_beep():
     return call_node_red_api('beep', payload)
 
 def turn_mic_on():
-    payload = {
-        'mic': 'on',
-    }
-    return call_node_red_api('mic_on', payload)
+    client.publish("mic_on", "on")
 
 def turn_mic_off():
-    payload = {
-        'mic': 'off',
-    }
-    return call_node_red_api('mic_off', payload)
+    client.publish("mic_off", "off")
 
 def toggle_switch():
     ''' 用於開啟/關閉房間電燈開關 '''
@@ -250,4 +271,8 @@ def play_music_track(song):
 
 if __name__ == '__main__':
     turn_mic_on()
-    toggle_switch()
+    time.sleep(1)  # 等待訊息發送完成
+    turn_mic_off()
+    time.sleep(1)  # 等待訊息發送完成
+
+    # toggle_switch()
