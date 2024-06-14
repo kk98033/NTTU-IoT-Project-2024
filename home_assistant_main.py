@@ -16,6 +16,9 @@ import wave
 from pathlib import Path
 
 from assistant_api_not_streaming import send_message_to_assistant
+from tools import turn_mic_off, turn_mic_on
+
+from Denoiser import Denoiser
 
 # 加載 .env 文件
 load_dotenv()
@@ -28,6 +31,7 @@ if not api_key:
     raise ValueError("API key not found. Make sure to set OPENAI_API_KEY in your .env file")
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+denoiser = Denoiser()
 
 # assistant setting
 assistant_id = "asst_CAnTShQDTVvObtJyPbNB04UP"
@@ -146,7 +150,11 @@ def stream_audio_from_api(uri, save_path):
         print(f"General error: {e}")
 
 def process_user_audio_response():
-    stt = send_data_to_openai_stt('recorded_audio.wav')
+    turn_mic_off()
+    is_mic_on = False
+
+    denoiser.process('recorded_audio.wav', 'denoised_recorded_audio.wav')
+    stt = send_data_to_openai_stt('denoised_recorded_audio.wav')
     if not stt:
         print('Failed to get stt')
         return
@@ -159,7 +167,8 @@ def process_user_audio_response():
     call_tts_and_save(assistant_response, 'speech.mp3')
 
 def play_new_audio():
-    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'speech.mp3'})
+    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'speech.mp3', 'type': 'mp3'})
+
     print(response.status_code, response.text)
 
 # 初始化 WebRTC VAD
@@ -171,8 +180,11 @@ print("Listening for wakewords...")
 recording = False
 recorded_audio = []
 silence_threshold = 15000  # Adjust this threshold based on your needs
-silence_duration = 1.5  # Duration of silence in seconds to stop recording
+silence_duration = 4  # Duration of silence in seconds to stop recording
 silence_start = None
+
+is_mic_on = False
+recording_start_time = None
 
 try:
     while True:
@@ -190,11 +202,13 @@ try:
                         silence_start = time.time()
                     elif time.time() - silence_start > silence_duration:
                         recording = False
-                        audio_data_concat = np.concatenate(recorded_audio)
-                        save_to_wav('recorded_audio.wav', audio_data_concat)
-                        print("Audio saved to 'recorded_audio.wav'")
-                        
-                        process_user_audio_response()
+                        recording_duration = time.time() - recording_start_time
+                        if recording_duration >= 1:
+                            audio_data_concat = np.concatenate(recorded_audio)
+                            save_to_wav('recorded_audio.wav', audio_data_concat)
+                            print("Audio saved to 'recorded_audio.wav'")
+                            
+                            process_user_audio_response()
 
                         recorded_audio = []
                         silence_start = None
@@ -204,11 +218,15 @@ try:
             prediction = owwModel.predict(audio_data)
             for mdl in owwModel.prediction_buffer.keys():
                 scores = list(owwModel.prediction_buffer[mdl])
-                if scores[-1] > 0.5:
+                if scores[-1] > 0.05:
                     recording = True
+                    recording_start_time = time.time()  # 記錄開始錄音的時間
                     print('beep')
-                    beep()
-                    recorded_audio = [reduced_noise]  # Start a new recording
+
+                    if not is_mic_on:
+                        turn_mic_on()
+                        is_mic_on = True
+                    recorded_audio = [reduced_noise]  # 開始新的錄音
                     print("Wakeword detected! Start recording...")
 
             print(f"Audio level: {audio_level} (recording: {recording})", end='\r')
