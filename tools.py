@@ -151,13 +151,15 @@ def search_youtube_and_play_first(parameters):
     results = videos_search.result()['result']
     
     if results:
-        first_video_url = results[0]['link']
-        print(f"Playing video: {first_video_url}")
+        first_video = results[0]
+        first_video_url = first_video['link']
+        first_video_title = first_video['title']
+        print(f"Playing video: {first_video_title} ({first_video_url})")
 
         # 發送 POST 請求來切換到 YouTube 影片
         response = requests.post(api_url, json={'file': first_video_url, 'type': 'youtube'})
         print(response.status_code, response.text)
-        return first_video_url
+        return f"即將播放：{first_video_title}"
     else:
         print("No videos found.")
         return "No videos found."
@@ -269,10 +271,21 @@ def play_music_track(song):
     }
     return call_node_red_api('play_music', payload)
 
+def stop_music():
+    url = 'http://localhost:5000/stop_youtube'
+    response = requests.post(url)
+    if response.status_code == 200:
+        return 'YouTube video stopped successfully.'
+    else:
+        return f'Failed to stop YouTube video. Status code: {response.status_code}'
+
+
 if __name__ == '__main__':
-    turn_mic_on()
-    time.sleep(1)  # 等待訊息發送完成
-    turn_mic_off()
-    time.sleep(1)  # 等待訊息發送完成
+    stop_music()
+
+    # turn_mic_on()
+    # time.sleep(1)  # 等待訊息發送完成
+    # turn_mic_off()
+    # time.sleep(1)  # 等待訊息發送完成
 
     # toggle_switch()

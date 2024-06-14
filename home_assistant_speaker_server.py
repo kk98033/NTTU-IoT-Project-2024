@@ -103,6 +103,11 @@ def index():
             }
           });
 
+          socket.on('stop_youtube', function() {
+            console.log('Stopping YouTube video');
+            youtubePlayer.stop();
+          });
+
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
@@ -130,6 +135,17 @@ def switch_audio():
         return 'OK', 200
     else:
         return 'Bad Request', 400
+
+@app.route('/stop_youtube', methods=['POST'])
+def stop_youtube():
+    notify_stop_youtube()
+    return 'OK', 200
+
+def notify_stop_youtube():
+    with app.app_context():
+        print("Notifying clients to stop YouTube video")
+        socketio.emit('stop_youtube')
+
 
 def notify_new_audio(file, type):
     with app.app_context():
