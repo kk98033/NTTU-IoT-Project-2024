@@ -6,7 +6,7 @@ from typing_extensions import override
 from openai import AssistantEventHandler
 import requests
 
-from tools import call_beep, turn_mic_on, turn_mic_off, analyze_temperature_and_humidity, stop_music, toggle_switch, search_google, get_weather_forecast, play_music_track, search_youtube_and_play_first
+from tools import call_beep, turn_mic_on, turn_mic_off, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, toggle_switch, search_google, get_weather_forecast, search_youtube_and_play_first
 
 # 加載 .env 文件
 load_dotenv()
@@ -23,16 +23,19 @@ def process_tool_calls(required_action):
     tool_functions = {
         "toggle_switch": lambda tool: toggle_switch(),
         "stop_music": lambda tool: stop_music(),
+        "outdoor_procedure": lambda tool: outdoor_procedure(),
+        "home_procedure": lambda params: home_procedure(params),
+        "bedtime_procedure": lambda params: bedtime_procedure(params),
         "analyze_temperature_and_humidity": lambda tool: analyze_temperature_and_humidity(),
         "search_google": lambda params: search_google(params),
         "get_weather_forecast": lambda params: get_weather_forecast(),
-        "play_music_track": lambda params: play_music_track(params),
         "search_youtube_and_play_first": lambda params: search_youtube_and_play_first(params)
     }
 
     # Loop through each tool in the required action section
     for tool in required_action.submit_tool_outputs.tool_calls:
         func = tool_functions.get(tool.function.name)
+        print(tool.function.name)
         if func:
             try:
                 # 解析參數
@@ -135,7 +138,7 @@ if __name__ == '__main__':
     thread = client.beta.threads.create()
     thread_id = thread.id  # 取得新創建的 thread 的 ID
     # message_content = "我想要聽SHIKANOKO NOKONOKO KOSHITANTAN一小時版本"
-    message_content = "今天我的房間溫度如何？"
+    message_content = "晚安"
 
     # message_content = input()
     print(send_message_to_assistant(assistant_id, thread_id, message_content))

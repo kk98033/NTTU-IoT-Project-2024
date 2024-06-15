@@ -13,6 +13,7 @@ mqtt_server = "34.168.176.224"
 mqtt_topic = "xyz"
 
 reminders = []
+reminder_messages = []
 alarms = []
 last_movement_time = time.time()
 
@@ -25,10 +26,14 @@ def set_reminder(message: str, delay: int) -> str:
         print(f"Reminder: {message}")
         if t in reminders:
             reminders.remove(t)
+        if message in reminder_messages:
+            reminder_messages.remove(message)
     
     t = threading.Timer(delay, reminder)
     t.start()
     reminders.append(t)
+
+    reminder_messages.append(message)
 
     if delay < 60:
         time_str = f"{delay} 秒"
@@ -163,6 +168,10 @@ def api_set_alarm_at():
     minute = data.get('minute')
     response = set_alarm_at(month, day, hour, minute)
     return jsonify({"status": "success", "message": response})
+
+@app.route('/list_reminders', methods=['GET'])
+def list_reminders():
+    return jsonify({"status": "success", "reminders": reminder_messages})
 
 if __name__ == '__main__':
     # response = set_reminder('hello world', 10)

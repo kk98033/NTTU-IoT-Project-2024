@@ -278,11 +278,6 @@ def get_weather_forecast():
     else:
         return "Failed to retrieve location information"
 
-def play_music_track(song):
-    payload = {
-        'song': song,
-    }
-    return call_node_red_api('play_music', payload)
 
 def stop_music():
     url = 'http://localhost:5000/stop_youtube'
@@ -297,21 +292,33 @@ def set_reminder(message, delay):
     payload = {'message': message, 'delay': delay}
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, data=json.dumps(payload), headers=headers)
-    return response.json()
+
+    response_json = response.json()
+    message = response_json.get('message') 
+    # print(message)  
+    return message  
 
 def set_alarm(time_to_ring):
     url = 'http://localhost:6669/set_alarm'
     payload = {'time_to_ring': time_to_ring}
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, data=json.dumps(payload), headers=headers)
-    return response.json()
+
+    response_json = response.json()
+    message = response_json.get('message') 
+    # print(message)  
+    return message  
 
 def set_alarm_at(month, day, hour, minute):
     url = 'http://localhost:6669/set_alarm_at'
     payload = {'month': month, 'day': day, 'hour': hour, 'minute': minute}
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, data=json.dumps(payload), headers=headers)
-    return response.json()
+
+    response_json = response.json()
+    message = response_json.get('message') 
+    # print(message)  
+    return message  
 
 def analyze_temperature_and_humidity(date=None):
     spreadsheet_url = "https://docs.google.com/spreadsheets/d/1_PZkF4x315FKZqo1m74XvjLMYuB6yXl_fNtfFnbSbVY/edit?gid=0#gid=0"
@@ -389,8 +396,74 @@ def analyze_temperature_and_humidity(date=None):
 
     return json.dumps(result, ensure_ascii=False, indent=4)
 
+''' procedures '''
+def list_reminders():
+    response = requests.get('http://localhost:6669/list_reminders')
+    if response.status_code == 200:
+        return response.json().get('reminders', [])
+    else:
+        return []
+    
+def outdoor_procedure():
+    procedure_text = '出門流程已經啟動(一定要說你做了什麼)，你已完成：'
+    
+    # 撥動電燈開關
+    toggle_switch()
+    procedure_text += '1.關燈'
+
+    # 列出目前的提醒事項
+    procedure_text += '2.提醒事項'
+    reminders = list_reminders()
+    procedure_text += "目前的提醒事項:"
+    for reminder in reminders:
+        procedure_text += f'{reminder}\n'
+
+    print(procedure_text)
+    return procedure_text
+
+
+def home_procedure(music_name):
+    procedure_text = '回家流程已啟動(一定要說你做了什麼)，你已完成：'
+    # 撥動電燈開關
+    toggle_switch()
+    procedure_text += '1.開燈'
+
+    # 播放回家提示音樂
+    procedure_text += '2.播放了一首音樂'
+    procedure_text += search_youtube_and_play_first(music_name)
+
+    print(procedure_text)
+    return procedure_text
+
+
+def bedtime_procedure(music_name):
+    procedure_text = '睡覺流程已啟動(一定要說你做了什麼)，你已完成：'
+
+    # 撥動電燈開關
+    toggle_switch()
+    procedure_text += '1.關燈'
+
+    # 播放睡覺提示音樂
+    procedure_text += '2.播放了一首睡覺音樂'
+    procedure_text += search_youtube_and_play_first(music_name)
+
+    # 列出目前的提醒事項
+    reminders = list_reminders()
+    print("目前的提醒事項:")
+    procedure_text += "目前的提醒事項:"
+    for reminder in reminders:
+        procedure_text += f'{reminder}\n'
+
+    # 設置鬧鐘
+    procedure_text += set_alarm(28800)
+
+    print(procedure_text)
+    return procedure_text
+
 if __name__ == '__main__':
-    print(get_weather_forecast())
+    print(bedtime_procedure('never gonna give you up'))
+
+    # print(get_weather_forecast())
 
     # print(analyze_temperature_and_humidity())
 
