@@ -7,7 +7,7 @@ from openai import AssistantEventHandler
 import json
 import requests
 
-from tools import call_beep, turn_mic_on, turn_mic_off, set_alarm_at, set_alarm, set_reminder, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, turn_on_the_light, turn_off_the_light, search_google, get_weather_forecast, search_youtube_and_play_first
+from tools import call_beep, turn_mic_on, turn_mic_off, get_today_date, set_alarm_at, set_alarm, set_reminder, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, turn_on_the_light, turn_off_the_light, search_google, get_weather_forecast, search_youtube_and_play_first
 
 # 加載 .env 文件
 load_dotenv()
@@ -21,6 +21,7 @@ def process_tool_calls(required_action):
     tool_functions = {
         "turn_on_the_light": lambda tool: turn_on_the_light(),
         "turn_off_the_light": lambda tool: turn_off_the_light(),
+        "get_today_date": lambda tool: get_today_date(),
         "stop_music": lambda tool: stop_music(),
         "outdoor_procedure": lambda tool: outdoor_procedure(),
         "set_reminder": lambda params: set_reminder(params['message'], params['delay']),

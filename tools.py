@@ -88,14 +88,14 @@ def turn_mic_off():
 def change_mini_screen(screen_index):
     client.publish("change_mini_screen", screen_index)
 
-def toggle_switch():
-    ''' 用於開啟/關閉房間電燈開關 '''
-    payload = {
-        'switch': 'toggle',
+def get_today_date():
+    today = datetime.today()
+    date_info = {
+        "year": today.year,
+        "month": today.month,
+        "day": today.day
     }
-    call_node_red_api('toggle_switch', payload)
-    
-    return "已經撥動電燈開關"
+    return json.dumps(date_info)
 
 def turn_on_the_light():
     payload = {
@@ -422,7 +422,7 @@ def outdoor_procedure():
     procedure_text = '出門流程已經啟動(一定要說你做了什麼)，你已完成：'
     
     # 撥動電燈開關
-    toggle_switch()
+    turn_off_the_light()
     procedure_text += '1.關燈'
 
     # 列出目前的提醒事項
@@ -439,7 +439,7 @@ def outdoor_procedure():
 def home_procedure(music_name):
     procedure_text = '回家流程已啟動(一定要說你做了什麼)，你已完成：'
     # 撥動電燈開關
-    toggle_switch()
+    turn_on_the_light()
     procedure_text += '1.開燈'
 
     # 播放回家提示音樂
@@ -454,7 +454,7 @@ def bedtime_procedure(music_name):
     procedure_text = '睡覺流程已啟動(一定要說你做了什麼)，你已完成：'
 
     # 撥動電燈開關
-    toggle_switch()
+    turn_off_the_light()
     procedure_text += '1.關燈'
 
     # 播放睡覺提示音樂
@@ -477,6 +477,8 @@ def bedtime_procedure(music_name):
 if __name__ == '__main__':
     print(turn_on_the_light())
     print(turn_off_the_light())
+    print(get_today_date())
+
 
     # print(get_weather_forecast())
 
