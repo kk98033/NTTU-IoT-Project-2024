@@ -97,6 +97,20 @@ def toggle_switch():
     
     return "已經撥動電燈開關"
 
+def turn_on_the_light():
+    payload = {
+        'switch': 'ON',
+    }
+    call_node_red_api('turn_on_the_light', payload)
+    return "已經開啟電燈開關"
+
+def turn_off_the_light():
+    payload = {
+        'switch': 'OFF',
+    }
+    call_node_red_api('turn_off_the_light', payload)
+    return "已經關閉電燈開關"
+
 def search_google(parameters):
     query = parameters['query']
 
@@ -461,7 +475,8 @@ def bedtime_procedure(music_name):
     return procedure_text
 
 if __name__ == '__main__':
-    print(bedtime_procedure('never gonna give you up'))
+    print(turn_on_the_light())
+    print(turn_off_the_light())
 
     # print(get_weather_forecast())
 

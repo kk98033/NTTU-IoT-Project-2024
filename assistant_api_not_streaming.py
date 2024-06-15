@@ -4,24 +4,23 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from typing_extensions import override
 from openai import AssistantEventHandler
+import json
 import requests
 
-from tools import call_beep, turn_mic_on, turn_mic_off, set_alarm_at, set_alarm, set_reminder, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, toggle_switch, search_google, get_weather_forecast, search_youtube_and_play_first
+from tools import call_beep, turn_mic_on, turn_mic_off, set_alarm_at, set_alarm, set_reminder, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, turn_on_the_light, turn_off_the_light, search_google, get_weather_forecast, search_youtube_and_play_first
 
 # 加載 .env 文件
 load_dotenv()
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-import json
-
-import json
 
 def process_tool_calls(required_action):
     tool_outputs = []
 
     tool_functions = {
-        "toggle_switch": lambda tool: toggle_switch(),
+        "turn_on_the_light": lambda tool: turn_on_the_light(),
+        "turn_off_the_light": lambda tool: turn_off_the_light(),
         "stop_music": lambda tool: stop_music(),
         "outdoor_procedure": lambda tool: outdoor_procedure(),
         "set_reminder": lambda params: set_reminder(params['message'], params['delay']),
