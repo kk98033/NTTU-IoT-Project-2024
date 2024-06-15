@@ -21,5 +21,8 @@ denoiser/
 
 assistant_functions.py
 test_call_google_sheet.py
+test_call_reminder.py
+test_changing_mp3.py
+test_serch_youtube_video.py
 
 credentials.json
