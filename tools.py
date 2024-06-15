@@ -44,7 +44,6 @@ client.on_publish = on_publish
 client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE_INTERVAL)
 client.loop_start()
 
-
 def call_node_red_api(endpoint, payload):
     url = f'http://127.0.0.1:1880/{endpoint}'
     
@@ -85,6 +84,9 @@ def turn_mic_on():
 
 def turn_mic_off():
     client.publish("mic_off", "off")
+
+def change_mini_screen(screen_index):
+    client.publish("change_mini_screen", screen_index)
 
 def toggle_switch():
     ''' 用於開啟/關閉房間電燈開關 '''
@@ -263,7 +265,14 @@ def get_weather_forecast():
         weather_info = call_weather_forecast_API(city=city)
         if weather_info:
             parsed_data = parse_latest_weather_data(weather_info)
-            return json.dumps(parsed_data, ensure_ascii=False, indent=4)
+            weather_json = json.dumps(parsed_data, ensure_ascii=False, indent=4)
+            
+            # 呼叫 Node-RED API 更新天氣
+            payload = {'weather': weather_json}
+            print(payload)
+            call_node_red_api('update_weather', payload)
+            
+            return weather_json
         else:
             return "Failed to retrieve weather data"
     else:
@@ -381,7 +390,9 @@ def analyze_temperature_and_humidity(date=None):
     return json.dumps(result, ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
-    print(analyze_temperature_and_humidity())
+    print(get_weather_forecast())
+
+    # print(analyze_temperature_and_humidity())
 
     # stop_music()
 
