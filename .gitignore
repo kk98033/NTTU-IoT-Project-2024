@@ -20,3 +20,6 @@ denoiser/
 測試程式碼(超級亂)/
 
 assistant_functions.py
+test_call_google_sheet.py
+
+credentials.json

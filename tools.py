@@ -9,6 +9,10 @@ import time
 from dotenv import load_dotenv
 from youtubesearchpython import VideosSearch
 import paho.mqtt.client as mqtt
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
+from datetime import datetime
 
 # load .env file
 load_dotenv()
@@ -300,8 +304,86 @@ def set_alarm_at(month, day, hour, minute):
     response = requests.post(url, data=json.dumps(payload), headers=headers)
     return response.json()
 
+def analyze_temperature_and_humidity(date=None):
+    spreadsheet_url = "https://docs.google.com/spreadsheets/d/1_PZkF4x315FKZqo1m74XvjLMYuB6yXl_fNtfFnbSbVY/edit?gid=0#gid=0"
+    credentials_file = "credentials.json"
+
+    # 設定憑證檔案和範圍
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
+    client = gspread.authorize(creds)
+
+    # 讀取 Google Sheet
+    spreadsheet = client.open_by_url(spreadsheet_url)
+
+    # 讀取 "溫度" 表單
+    worksheet_temp = spreadsheet.worksheet("溫度")
+    data_temp = worksheet_temp.get_all_values()
+
+    # 讀取 "濕度" 表單
+    worksheet_humidity = spreadsheet.worksheet("濕度")
+    data_humidity = worksheet_humidity.get_all_values()
+
+    # 轉換為 DataFrame，並手動設定欄位名稱
+    df_temp = pd.DataFrame(data_temp[1:], columns=['日期', '時間', '溫度'])
+    df_humidity = pd.DataFrame(data_humidity[1:], columns=['日期', '時間', '濕度'])
+
+    # 確認日期和數值格式
+    df_temp['日期'] = pd.to_datetime(df_temp['日期'], format='%Y-%m-%d').dt.date
+    df_temp['溫度'] = pd.to_numeric(df_temp['溫度'])
+
+    df_humidity['日期'] = pd.to_datetime(df_humidity['日期'], format='%Y-%m-%d').dt.date
+    df_humidity['濕度'] = pd.to_numeric(df_humidity['濕度'])
+
+    # 如果沒有提供日期，則使用今日日期
+    if date is None:
+        date = datetime.now().date()
+
+    # 只選擇指定日期的資料
+    temp_data = df_temp[df_temp['日期'] == date]
+    humidity_data = df_humidity[df_humidity['日期'] == date]
+
+    # 分析結果字典
+    result = {
+        "日期": str(date),
+        "溫度分析": {},
+        "濕度分析": {}
+    }
+
+    # 分析溫度
+    if not temp_data.empty:
+        avg_temp = temp_data['溫度'].mean().astype(float)
+        max_temp = temp_data['溫度'].max().astype(float)
+        min_temp = temp_data['溫度'].min().astype(float)
+
+        result["溫度分析"] = {
+            '平均溫度': avg_temp,
+            '最高溫度': max_temp,
+            '最低溫度': min_temp,
+        }
+    else:
+        result["溫度分析"] = "指定日期沒有溫度資料。"
+
+    # 分析濕度
+    if not humidity_data.empty:
+        avg_humidity = humidity_data['濕度'].mean().astype(float)
+        max_humidity = humidity_data['濕度'].max().astype(float)
+        min_humidity = humidity_data['濕度'].min().astype(float)
+
+        result["濕度分析"] = {
+            '平均濕度': avg_humidity,
+            '最高濕度': max_humidity,
+            '最低濕度': min_humidity,
+        }
+    else:
+        result["濕度分析"] = "指定日期沒有濕度資料。"
+
+    return json.dumps(result, ensure_ascii=False, indent=4)
+
 if __name__ == '__main__':
-    stop_music()
+    print(analyze_temperature_and_humidity())
+
+    # stop_music()
 
     # turn_mic_on()
     # time.sleep(1)  # 等待訊息發送完成
