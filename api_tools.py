@@ -36,8 +36,8 @@ def call_tts_and_save(text, save_path):
     uri = f"http://127.0.0.1:9880/?text={text}&text_language=zh"
     stream_audio_from_api(uri, save_path)
 
-def play_new_audio():
-    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'speech.mp3', 'type': 'mp3'})
+def play_new_audio(save_path):
+    response = requests.post(f'http://localhost:5000/switch_audio', json={'file': f'{save_path}', 'type': 'mp3'})
 
     print(response.status_code, response.text)
 
@@ -52,7 +52,7 @@ def stream_audio_from_api(uri, save_path):
                 audio_file.write(chunk)
         
         print(f"Audio saved to {save_path}")
-        play_new_audio()
+        play_new_audio(save_path)
     
     except requests.exceptions.RequestException as e:
         print(f"Request error: {e}")
