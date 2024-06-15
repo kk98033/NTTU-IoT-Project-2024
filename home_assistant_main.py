@@ -16,6 +16,7 @@ import wave
 from pathlib import Path
 
 from assistant_api_not_streaming import send_message_to_assistant
+from api_tools import call_assistant_api, call_tts_and_save, send_data_to_openai_stt
 from tools import turn_mic_off, turn_mic_on
 
 from Denoiser import Denoiser
@@ -79,78 +80,80 @@ def save_to_wav(filename, audio_data):
     wf.writeframes(audio_data.tobytes())
     wf.close()
 
-def beep():
-    url = 'http://127.0.0.1:1880/beep'
-    data = {
-        'beep': '1',
-    }
+# def beep():
+#     url = 'http://127.0.0.1:1880/beep'
+#     data = {
+#         'beep': '1',
+#     }
 
-    print('準備呼叫 Node-RED API...')
+#     print('準備呼叫 Node-RED API...')
 
-    try:
-        response = requests.post(url, json=data, timeout=10)  # 設定超時為 10 秒
-        print('API 請求已發送...')
-    except requests.Timeout:
-        print('呼叫 API 超時。請確認 Node-RED 伺服器是否在運行。')
-        return
-    except requests.ConnectionError:
-        print('無法連接到 Node-RED 伺服器。請檢查伺服器是否在運行，以及網路設置是否正確。')
-        return
-    except Exception as e:
-        print('呼叫 API 時出現未知錯誤:', e)
-        return
+#     try:
+#         response = requests.post(url, json=data, timeout=10)  # 設定超時為 10 秒
+#         print('API 請求已發送...')
+#     except requests.Timeout:
+#         print('呼叫 API 超時。請確認 Node-RED 伺服器是否在運行。')
+#         return
+#     except requests.ConnectionError:
+#         print('無法連接到 Node-RED 伺服器。請檢查伺服器是否在運行，以及網路設置是否正確。')
+#         return
+#     except Exception as e:
+#         print('呼叫 API 時出現未知錯誤:', e)
+#         return
 
-    # 處理回應
-    if response.status_code == 200:
-        try:
-            result = response.json()
-            print('Result:', result)
-        except ValueError:
-            print('回應不是 JSON 格式:', response.text)
-    else:
-        print('Failed to call Node-RED API:', response.status_code)
-    return
+#     # 處理回應
+#     if response.status_code == 200:
+#         try:
+#             result = response.json()
+#             print('Result:', result)
+#         except ValueError:
+#             print('回應不是 JSON 格式:', response.text)
+#     else:
+#         print('Failed to call Node-RED API:', response.status_code)
+#     return
 
 # Function to send data to OpenAI STT API
-def send_data_to_openai_stt(audio_file):
-    try:
-        with open(audio_file, 'rb') as audio_file:
-            transcription = client.audio.transcriptions.create(
-                model="whisper-1", 
-                file=audio_file
-            )
-            print("Transcription:", transcription.text)
-            return transcription.text
-    except Exception as e:
-        print(f"Error occurred: {e}")
+# def send_data_to_openai_stt(audio_file):
+#     try:
+#         with open(audio_file, 'rb') as audio_file:
+#             transcription = client.audio.transcriptions.create(
+#                 model="whisper-1", 
+#                 file=audio_file
+#             )
+#             print("Transcription:", transcription.text)
+#             return transcription.text
+#     except Exception as e:
+#         print(f"Error occurred: {e}")
 
-def call_assistant_api(user_message):
-    return send_message_to_assistant(assistant_id, thread_id, user_message)
+# def call_assistant_api(user_message):
+#     return send_message_to_assistant(assistant_id, thread_id, user_message)
 
-def call_tts_and_save(text, save_path):
-    uri = f"http://127.0.0.1:9880/?text={text}&text_language=zh"
-    stream_audio_from_api(uri, save_path)
+# def call_tts_and_save(text, save_path):
+#     uri = f"http://127.0.0.1:9880/?text={text}&text_language=zh"
+#     stream_audio_from_api(uri, save_path)
 
-def stream_audio_from_api(uri, save_path):
-    try:
-        print('streaming')
-        response = requests.get(uri, stream=True, timeout=60)
-        response.raise_for_status()
+# def stream_audio_from_api(uri, save_path):
+#     try:
+#         print('streaming')
+#         response = requests.get(uri, stream=True, timeout=60)
+#         response.raise_for_status()
         
-        with open(save_path, 'wb') as audio_file:
-            for chunk in response.iter_content(chunk_size=8192):
-                audio_file.write(chunk)
+#         with open(save_path, 'wb') as audio_file:
+#             for chunk in response.iter_content(chunk_size=8192):
+#                 audio_file.write(chunk)
         
-        print(f"Audio saved to {save_path}")
-        play_new_audio()
+#         print(f"Audio saved to {save_path}")
+#         play_new_audio()
     
-    except requests.exceptions.RequestException as e:
-        print(f"Request error: {e}")
-    except Exception as e:
-        print(f"General error: {e}")
+#     except requests.exceptions.RequestException as e:
+#         print(f"Request error: {e}")
+#     except Exception as e:
+#         print(f"General error: {e}")
 
 def process_user_audio_response():
     turn_mic_off()
+    
+    global is_mic_on
     is_mic_on = False
 
     denoiser.process('recorded_audio.wav', 'denoised_recorded_audio.wav')

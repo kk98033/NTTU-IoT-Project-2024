@@ -279,6 +279,26 @@ def stop_music():
     else:
         return f'Failed to stop YouTube video. Status code: {response.status_code}'
 
+def set_reminder(message, delay):
+    url = 'http://localhost:6669/set_reminder'
+    payload = {'message': message, 'delay': delay}
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(url, data=json.dumps(payload), headers=headers)
+    return response.json()
+
+def set_alarm(time_to_ring):
+    url = 'http://localhost:6669/set_alarm'
+    payload = {'time_to_ring': time_to_ring}
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(url, data=json.dumps(payload), headers=headers)
+    return response.json()
+
+def set_alarm_at(month, day, hour, minute):
+    url = 'http://localhost:6669/set_alarm_at'
+    payload = {'month': month, 'day': day, 'hour': hour, 'minute': minute}
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(url, data=json.dumps(payload), headers=headers)
+    return response.json()
 
 if __name__ == '__main__':
     stop_music()
