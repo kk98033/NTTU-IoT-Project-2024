@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import threading
+import requests
 import time
 import json
 from datetime import datetime
@@ -25,6 +26,8 @@ last_movement_time = time.time()
 
 def play_music():
     print("Playing music...")
+    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'https://youtu.be/tL9yDq5hpgI?si=hdQRWWMUwbIfoVyc', 'type': 'youtube'})
+    print(response.status_code, response.text)
 
 def set_reminder(message: str, delay: int) -> str:
     def reminder():
