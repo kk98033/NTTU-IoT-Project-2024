@@ -6,7 +6,7 @@ from typing_extensions import override
 from openai import AssistantEventHandler
 import requests
 
-from tools import call_beep, turn_mic_on, turn_mic_off, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, toggle_switch, search_google, get_weather_forecast, search_youtube_and_play_first
+from tools import call_beep, turn_mic_on, turn_mic_off, set_alarm_at, set_alarm, set_reminder, bedtime_procedure, home_procedure, outdoor_procedure, analyze_temperature_and_humidity, stop_music, toggle_switch, search_google, get_weather_forecast, search_youtube_and_play_first
 
 # 加載 .env 文件
 load_dotenv()
@@ -24,6 +24,9 @@ def process_tool_calls(required_action):
         "toggle_switch": lambda tool: toggle_switch(),
         "stop_music": lambda tool: stop_music(),
         "outdoor_procedure": lambda tool: outdoor_procedure(),
+        "set_reminder": lambda params: set_reminder(params['message'], params['delay']),
+        "set_alarm": lambda params: set_alarm(params['time_to_ring']),
+        "set_alarm_at": lambda params: set_alarm_at(params['month'], params['day'], params['hour'], params['minute']),
         "home_procedure": lambda params: home_procedure(params),
         "bedtime_procedure": lambda params: bedtime_procedure(params),
         "analyze_temperature_and_humidity": lambda tool: analyze_temperature_and_humidity(),
@@ -40,6 +43,7 @@ def process_tool_calls(required_action):
             try:
                 # 解析參數
                 params = json.loads(tool.function.arguments)
+                print('params:', params)
                 result = func(params)
                 tool_outputs.append({"tool_call_id": tool.id, "output": result})
             except Exception as e:
@@ -138,7 +142,7 @@ if __name__ == '__main__':
     thread = client.beta.threads.create()
     thread_id = thread.id  # 取得新創建的 thread 的 ID
     # message_content = "我想要聽SHIKANOKO NOKONOKO KOSHITANTAN一小時版本"
-    message_content = "晚安"
+    message_content = "一分鐘後提醒我倒垃圾"
 
     # message_content = input()
     print(send_message_to_assistant(assistant_id, thread_id, message_content))

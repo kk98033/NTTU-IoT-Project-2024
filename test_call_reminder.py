@@ -23,6 +23,7 @@ def call_set_alarm_at(month, day, hour, minute):
     return response.json()
 
 # 測試呼叫
+print(call_set_reminder("Time to work!", 0))
 print(call_set_reminder("Time to work!", 60))
 print(call_set_alarm(300))
 print(call_set_alarm_at(6, 15, 8, 0))
