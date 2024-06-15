@@ -26,7 +26,10 @@ def send_data_to_openai_stt(audio_file):
     except Exception as e:
         print(f"Error occurred: {e}")
 
-def call_assistant_api(user_message):
+def call_assistant_api(user_message, thread_id=None):
+    if thread_id is None:
+        global thread
+        thread_id = thread.id
     return send_message_to_assistant(assistant_id, thread_id, user_message)
 
 def call_tts_and_save(text, save_path):

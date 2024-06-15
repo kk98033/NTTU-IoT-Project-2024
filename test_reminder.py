@@ -4,8 +4,14 @@ import time
 import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
+import os
+from openai import OpenAI
+from dotenv import load_dotenv
 
 from api_tools import call_assistant_api, call_tts_and_save, send_data_to_openai_stt
+
+# 加載 .env 文件
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -121,8 +127,13 @@ def on_message(client, userdata, msg):
     update_movement(aX, aY, aZ, gX, gY, gZ)
 
 def remind_user(remind_text):
+    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+    thread = client.beta.threads.create()
+    thread_id = thread.id
+
     formatted_text = f"用你的話講(繁體中文)：{remind_text}，兇一點"
-    assistant_response = call_assistant_api(formatted_text)
+    assistant_response = call_assistant_api(formatted_text, thread_id)
     if not assistant_response:
         print('Failed to get assistant response')
         return
