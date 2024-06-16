@@ -162,7 +162,7 @@ def on_message(client, userdata, msg):
     else:
         print("Some values are None, check your JSON keys.")
 
-def calibrate_sensor(aX, aY, aZ, gX, gY, gZ, samples=50):
+def calibrate_sensor(aX, aY, aZ, gX, gY, gZ, samples=10):
     global ax_offset, ay_offset, az_offset, gx_offset, gy_offset, gz_offset, calibrated
     if not hasattr(calibrate_sensor, "count"):
         calibrate_sensor.count = 0
@@ -225,9 +225,9 @@ def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
     # 判斷是否有顯著的Z軸加速度變化
     if abs(total_acc - gravity) < threshold:
         if abs(gX) < gyro_threshold and abs(gY) < gyro_threshold and abs(gZ) < gyro_threshold:
+            print(last_movement_time)
             if abs(aZ - gravity) < threshold:
                 print("The device is stationary.")
-                last_movement_time = time.time()
             else:
                 if pitch > 10 or roll > 10:  # 根據角度判斷是否站立
                     print("The user is standing.")
@@ -236,16 +236,21 @@ def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
                     print("The user is sitting.")
                 else:
                     print("The user is moving.")
+                    print()
+                    print("[TIME]", time.time() - last_movement_time, time.time(), last_movement_time)
+                    print()
                     last_movement_time = time.time()
+
         else:
             print("The user is moving.")
-        last_movement_time = time.time()
+            last_movement_time = time.time()
     else:
         print("No significant movement detected.")
 
 def check_sedentary():
     global last_movement_time
     while True:
+        print("[TIME]", time.time() - last_movement_time, time.time(), last_movement_time)
         if time.time() - last_movement_time > 300:
             remind_user_preconfigured("久坐提醒")
             last_movement_time = time.time()
