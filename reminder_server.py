@@ -31,6 +31,9 @@ def play_music():
     print(response.status_code, response.text)
 
 def set_reminder(message: str, delay: int) -> str:
+    if message in reminder_messages:
+        return f"提醒 '{message}' 已經存在。"
+    
     def reminder():
         remind_user(f"Reminder: {message}")
         print(f"Reminder: {message}")
@@ -52,8 +55,9 @@ def set_reminder(message: str, delay: int) -> str:
     else:
         time_str = f"{delay // 3600} 小時"
     
-    remind_user(f"已設置提醒，將在 {time_str} 後提醒您: {message}")
+    # remind_user(f"已設置提醒，將在 {time_str} 後提醒您: {message}")
     return f"已設置提醒，將在 {time_str} 後提醒您: {message}"
+
 
 def set_alarm(time_to_ring: int) -> str:
     def alarm():
@@ -72,7 +76,7 @@ def set_alarm(time_to_ring: int) -> str:
     else:
         time_str = f"{time_to_ring // 3600} 小時"
     
-    remind_user(f"已設置鬧鐘，將在 {time_str} 後響鈴。")
+    # remind_user(f"已設置鬧鐘，將在 {time_str} 後響鈴。")
     return f"已設置鬧鐘，將在 {time_str} 後響鈴。"
 
 def set_alarm_at(month: int, day: int, hour: int, minute: int) -> str:
@@ -81,7 +85,7 @@ def set_alarm_at(month: int, day: int, hour: int, minute: int) -> str:
     delay = (alarm_time - now).total_seconds()
 
     if delay <= 0:
-        remind_user("指定的時間已過，無法設置鬧鐘。")
+        # remind_user("指定的時間已過，無法設置鬧鐘。")
         return "指定的時間已過，無法設置鬧鐘。"
 
     if delay < 60:
@@ -91,7 +95,7 @@ def set_alarm_at(month: int, day: int, hour: int, minute: int) -> str:
     else:
         time_str = f"{delay // 3600} 小時"
 
-    remind_user(f"已設置鬧鐘，將在 {time_str} 後響鈴。")
+    # remind_user(f"已設置鬧鐘，將在 {time_str} 後響鈴。")
     return set_alarm(int(delay))
 
 def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
@@ -106,13 +110,13 @@ def check_sedentary():
     global last_movement_time
     while True:
         if time.time() - last_movement_time > 300:
-            set_reminder("久坐提醒", 0)
+            remind_user_preconfigured("久坐提醒")
             last_movement_time = time.time()
         time.sleep(10)
 
 def set_drink_water_reminder():
     while True:
-        set_reminder("喝水提醒", 0)
+        remind_user_preconfigured("喝水提醒")
         time.sleep(1200)
 
 def on_connect(client, userdata, flags, rc):
@@ -156,15 +160,9 @@ def choose_random_reminder(remind_text):
         return "未知的提醒類型。"
 
 def remind_user(remind_text):
-    print('reminde text: ', remind_text)
+    print('remind user: ', remind_text)
     if "喝水提醒" in remind_text or '久坐提醒' in remind_text:
-        if "喝水提醒" in remind_text:
-            remind_path = 'Preconfigured_Audio_Storage/' + choose_random_reminder("喝水提醒")
-        if '久坐提醒' in remind_text:
-            remind_path = 'Preconfigured_Audio_Storage/' + choose_random_reminder('久坐提醒')
-        print(f'播放隨機語音: {remind_path}')
-        play_new_audio(remind_path)
-        return
+        remind_user_preconfigured(remind_text)
 
     # client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
@@ -178,6 +176,16 @@ def remind_user(remind_text):
     #     return
 
     # call_tts_and_save(assistant_response, 'reminder_speech.mp3')
+    return
+
+def remind_user_preconfigured(remind_text):
+    print('remind text: ', remind_text)
+    if "喝水提醒" in remind_text:
+        remind_path = 'Preconfigured_Audio_Storage/' + choose_random_reminder("喝水提醒")
+    if '久坐提醒' in remind_text:
+        remind_path = 'Preconfigured_Audio_Storage/' + choose_random_reminder('久坐提醒')
+    print(f'播放隨機語音: {remind_path}')
+    play_new_audio(remind_path)
     return
 
 sedentary_thread = threading.Thread(target=check_sedentary, daemon=True)
