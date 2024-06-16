@@ -6,10 +6,11 @@ import json
 from datetime import datetime
 import paho.mqtt.client as mqtt
 import os
+import random
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from api_tools import call_assistant_api, call_tts_and_save, send_data_to_openai_stt
+from api_tools import call_assistant_api, call_tts_and_save, play_new_audio
 
 # 加載 .env 文件
 load_dotenv()
@@ -105,13 +106,13 @@ def check_sedentary():
     global last_movement_time
     while True:
         if time.time() - last_movement_time > 300:
-            set_reminder("久坐提醒：起來活動一下！", 0)
+            set_reminder("久坐提醒", 0)
             last_movement_time = time.time()
         time.sleep(10)
 
 def set_drink_water_reminder():
     while True:
-        set_reminder("喝水提醒：記得喝水喔！", 0)
+        set_reminder("喝水提醒", 0)
         time.sleep(1200)
 
 def on_connect(client, userdata, flags, rc):
@@ -129,19 +130,54 @@ def on_message(client, userdata, msg):
     print(data)
     update_movement(aX, aY, aZ, gX, gY, gZ)
 
+def choose_random_reminder(remind_text):
+    print(remind_text)
+    reminders = {
+        '久坐提醒': [
+            "久坐提醒-1.mp3",
+            "久坐提醒-2.mp3",
+            "久坐提醒-3.mp3",
+            "久坐提醒-4.mp3",
+            "久坐提醒-5.mp3",
+            "久坐提醒-6.mp3"
+        ],
+        '喝水提醒': [
+            "喝水提醒-1.mp3",
+            "喝水提醒-2.mp3",
+            "喝水提醒-3.mp3",
+            "喝水提醒-4.mp3",
+            "喝水提醒-5.mp3"
+        ]
+    }
+    
+    if remind_text in reminders:
+        return random.choice(reminders[remind_text])
+    else:
+        return "未知的提醒類型。"
+
 def remind_user(remind_text):
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-
-    thread = client.beta.threads.create()
-    thread_id = thread.id
-
-    formatted_text = f"用你的話講(繁體中文)：{remind_text}，兇一點"
-    assistant_response = call_assistant_api(formatted_text, thread_id)
-    if not assistant_response:
-        print('Failed to get assistant response')
+    print('reminde text: ', remind_text)
+    if "喝水提醒" in remind_text or '久坐提醒' in remind_text:
+        if "喝水提醒" in remind_text:
+            remind_path = 'Preconfigured_Audio_Storage/' + choose_random_reminder("喝水提醒")
+        if '久坐提醒' in remind_text:
+            remind_path = 'Preconfigured_Audio_Storage/' + choose_random_reminder('久坐提醒')
+        print(f'播放隨機語音: {remind_path}')
+        play_new_audio(remind_path)
         return
 
-    call_tts_and_save(assistant_response, 'reminder_speech.mp3')
+    # client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+    # thread = client.beta.threads.create()
+    # thread_id = thread.id
+
+    # formatted_text = f"用你的話講(繁體中文)：{remind_text}，兇一點"
+    # assistant_response = call_assistant_api(formatted_text, thread_id)
+    # if not assistant_response:
+    #     print('Failed to get assistant response')
+    #     return
+
+    # call_tts_and_save(assistant_response, 'reminder_speech.mp3')
     return
 
 sedentary_thread = threading.Thread(target=check_sedentary, daemon=True)

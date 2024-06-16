@@ -1,6 +1,7 @@
 from flask import Flask, send_from_directory, render_template_string, request
 from flask_socketio import SocketIO, emit
 import re
+import os
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -122,9 +123,16 @@ def index():
     </html>
     ''')
 
-@app.route('/<filename>')
+@app.route('/<path:filename>')
 def get_audio(filename):
-    return send_from_directory('.', filename)
+    # 判斷文件是否在 Preconfigured_Audio_Storage 中
+    if filename.startswith('Preconfigured_Audio_Storage/'):
+        directory = 'Preconfigured_Audio_Storage'
+        filename = filename[len('Preconfigured_Audio_Storage/'):]
+    else:
+        directory = '.'
+
+    return send_from_directory(directory, filename)
 
 @app.route('/switch_audio', methods=['POST'])
 def switch_audio():
@@ -148,12 +156,13 @@ def notify_stop_youtube():
 
 
 def notify_new_audio(file, type):
+    file_path = os.path.normpath(file)
     with app.app_context():
         if type == 'mp3':
-            print(f"Notifying clients of new audio file: {file}")
-            socketio.emit('new_audio', {'file': file, 'type': type})
+            print(f"Notifying clients of new audio file: {file_path}")
+            socketio.emit('new_audio', {'file': file_path, 'type': type})
         elif type == 'youtube':
-            video_id = extract_video_id(file)
+            video_id = extract_video_id(file_path)
             print(f"Notifying clients of new YouTube video: {video_id}")
             socketio.emit('new_audio', {'videoId': video_id, 'type': type})
 
