@@ -4,6 +4,7 @@ import requests
 import time
 import json
 from datetime import datetime
+import numpy as np
 import paho.mqtt.client as mqtt
 import os
 import random
@@ -18,7 +19,7 @@ load_dotenv()
 app = Flask(__name__)
 
 mqtt_server = "34.168.176.224"
-mqtt_topic = "xyz"
+mqtt_topic = "XYZ"
 
 reminders = []
 reminder_messages = []
@@ -101,11 +102,20 @@ def set_alarm_at(month: int, day: int, hour: int, minute: int) -> str:
 def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
     global last_movement_time
     threshold = 500
+    gravity = 9.8 * 1000  # 假設加速度值是以 milli-g 為單位
 
-    if abs(aX) > threshold or abs(aY) > threshold or abs(aZ) > threshold or \
-       abs(gX) > threshold or abs(gY) > threshold or abs(gZ) > threshold:
+    # 計算總加速度
+    total_acc = np.sqrt(aX**2 + aY**2 + aZ**2)
+    
+    # 判斷是否有顯著的Z軸加速度變化
+    if abs(aZ) > threshold:
+        if abs(total_acc - gravity) < threshold:
+            print("The user is standing.")
+        else:
+            print("The user is sitting.")
         last_movement_time = time.time()
-
+    else:
+        print("No significant movement detected.")
 def check_sedentary():
     global last_movement_time
     while True:
@@ -124,15 +134,24 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(mqtt_topic)
 
 def on_message(client, userdata, msg):
-    data = json.loads(msg.payload.decode())
-    aX = data.get('aX')
-    aY = data.get('aY')
-    aZ = data.get('aZ')
-    gX = data.get('gX')
-    gY = data.get('gY')
-    gZ = data.get('gZ')
-    print(data)
-    update_movement(aX, aY, aZ, gX, gY, gZ)
+    try:
+        data = json.loads(msg.payload.decode())
+        aX = data.get('ax')
+        aY = data.get('ay')
+        aZ = data.get('az')
+        gX = data.get('gx')
+        gY = data.get('gy')
+        gZ = data.get('gz')
+        # print(data)
+        # print(aX, aY, aZ, gX, gY, gZ)
+        if all(v is not None for v in [aX, aY, aZ, gX, gY, gZ]):
+            update_movement(aX, aY, aZ, gX, gY, gZ)
+        else:
+            print("Some values are None, check your JSON keys.")
+    except json.JSONDecodeError:
+        print("Error decoding JSON")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 def choose_random_reminder(remind_text):
     print(remind_text)

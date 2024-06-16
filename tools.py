@@ -13,6 +13,8 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 # load .env file
 load_dotenv()
@@ -43,6 +45,9 @@ client.on_publish = on_publish
 # 連接 MQTT 伺服器
 client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE_INTERVAL)
 client.loop_start()
+
+sheet_id = '1_PZkF4x315FKZqo1m74XvjLMYuB6yXl_fNtfFnbSbVY'
+credentials_file = 'credentials.json'
 
 def call_node_red_api(endpoint, payload):
     url = f'http://127.0.0.1:1880/{endpoint}'
@@ -184,6 +189,36 @@ def search_youtube_and_play_first(parameters):
         print("No videos found.")
         return "No videos found."
 
+def get_latest_coordinates_from_sheet(sheet_id, credentials_file, sheet_name="GPS"):
+    # 使用憑證文件進行認證
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(credentials_file, scope)
+    client = gspread.authorize(credentials)
+
+    # 讀取指定的 Google Sheets 表單和工作表
+    sheet = client.open_by_key(sheet_id).worksheet(sheet_name)
+
+    # 取得所有資料列
+    rows = sheet.get_all_values()
+
+    if not rows:
+        return None, None
+
+    # 取得最新的一行資料
+    latest_row = rows[-1]
+
+    print("最新的一行資料:", latest_row)  # 打印最新的一行資料進行調試
+
+    # 日期 | 時間 | 緯度 | 經度
+    try:
+        latitude = float(latest_row[2])
+        longitude = float(latest_row[3])
+    except (ValueError, IndexError):
+        return None, None
+
+    return latitude, longitude
+
+
 def get_weather_forecast():
     def get_location(api_key, lat, lng):
         # 建立請求的 URL
@@ -266,11 +301,12 @@ def get_weather_forecast():
     google_maps_api_key = os.getenv('GOOGLE_MAP_API_KEY')
     
     # TODO: 使用 mqtt server 最新的經緯度資訊：
-    latitude = 25.0330
-    longitude = 121.5654
-    
+    # latitude = 25.0330
+    # longitude = 121.5654
+    latest_latitude, latest_longitude = get_latest_coordinates_from_sheet(sheet_id, credentials_file)
+    print(latest_latitude, latest_longitude)
     # 獲取縣市和區域信息
-    city, district = get_location(google_maps_api_key, latitude, longitude)
+    city, district = get_location(google_maps_api_key, latest_latitude, latest_longitude)
     city = city.replace('台', '臺')
     # print(f"這個位置在台灣的: {city} {district}")
     
@@ -475,12 +511,15 @@ def bedtime_procedure(music_name):
     return procedure_text
 
 if __name__ == '__main__':
-    print(turn_on_the_light())
-    print(turn_off_the_light())
-    print(get_today_date())
+    # print(turn_on_the_light())
+    # print(turn_off_the_light())
+    # print(get_today_date())
+    # print(turn_mic_on())
+    # print(turn_mic_off())
 
-
-    # print(get_weather_forecast())
+    # latest_latitude, latest_longitude = get_latest_coordinates_from_sheet(sheet_id, credentials_file)
+    # print(latest_latitude, latest_longitude)
+    print(get_weather_forecast())
 
     # print(analyze_temperature_and_humidity())
 
