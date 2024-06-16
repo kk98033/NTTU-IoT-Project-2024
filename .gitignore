@@ -25,5 +25,6 @@ test_call_reminder.py
 test_changing_mp3.py
 test_serch_youtube_video.py
 send_random_data.py
+check_sedentary.py
 
 credentials.json

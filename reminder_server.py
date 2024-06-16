@@ -99,30 +99,31 @@ def set_alarm_at(month: int, day: int, hour: int, minute: int) -> str:
     # remind_user(f"已設置鬧鐘，將在 {time_str} 後響鈴。")
     return set_alarm(int(delay))
 
-def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
-    global last_movement_time
-    threshold = 500
-    gravity = 9.8 * 1000  # 假設加速度值是以 milli-g 為單位
+# def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
+#     global last_movement_time
+#     threshold = 500
+#     gravity = 9.8 * 1000  # 假設加速度值是以 milli-g 為單位
 
-    # 計算總加速度
-    total_acc = np.sqrt(aX**2 + aY**2 + aZ**2)
+#     # 計算總加速度
+#     total_acc = np.sqrt(aX**2 + aY**2 + aZ**2)
     
-    # 判斷是否有顯著的Z軸加速度變化
-    if abs(aZ) > threshold:
-        if abs(total_acc - gravity) < threshold:
-            print("The user is standing.")
-        else:
-            print("The user is sitting.")
-        last_movement_time = time.time()
-    else:
-        print("No significant movement detected.")
-def check_sedentary():
-    global last_movement_time
-    while True:
-        if time.time() - last_movement_time > 300:
-            remind_user_preconfigured("久坐提醒")
-            last_movement_time = time.time()
-        time.sleep(10)
+#     # 判斷是否有顯著的Z軸加速度變化
+#     if abs(aZ) > threshold:
+#         if abs(total_acc - gravity) < threshold:
+#             print("The user is standing.")
+#         else:
+#             print("The user is sitting.")
+#         last_movement_time = time.time()
+#     else:
+#         print("No significant movement detected.")
+        
+# def check_sedentary():
+#     global last_movement_time
+#     while True:
+#         if time.time() - last_movement_time > 300:
+#             remind_user_preconfigured("久坐提醒")
+#             last_movement_time = time.time()
+#         time.sleep(10)
 
 def set_drink_water_reminder():
     while True:
@@ -133,25 +134,122 @@ def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
     client.subscribe(mqtt_topic)
 
+# 全局變量
+ax_offset = 0
+ay_offset = 0
+az_offset = 0
+gx_offset = 0
+gy_offset = 0
+gz_offset = 0
+calibrated = False
+last_movement_time = time.time()
+
 def on_message(client, userdata, msg):
-    try:
-        data = json.loads(msg.payload.decode())
-        aX = data.get('ax')
-        aY = data.get('ay')
-        aZ = data.get('az')
-        gX = data.get('gx')
-        gY = data.get('gy')
-        gZ = data.get('gz')
-        # print(data)
-        # print(aX, aY, aZ, gX, gY, gZ)
-        if all(v is not None for v in [aX, aY, aZ, gX, gY, gZ]):
-            update_movement(aX, aY, aZ, gX, gY, gZ)
+    global ax_offset, ay_offset, az_offset, gx_offset, gy_offset, gz_offset, calibrated
+    data = json.loads(msg.payload.decode())
+    aX = data.get('ax')
+    aY = data.get('ay')
+    aZ = data.get('az')
+    gX = data.get('gx')
+    gY = data.get('gy')
+    gZ = data.get('gz')
+
+    if all(v is not None for v in [aX, aY, aZ, gX, gY, gZ]):
+        if not calibrated:
+            calibrate_sensor(aX, aY, aZ, gX, gY, gZ)
         else:
-            print("Some values are None, check your JSON keys.")
-    except json.JSONDecodeError:
-        print("Error decoding JSON")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+            update_movement(aX, aY, aZ, gX, gY, gZ)
+    else:
+        print("Some values are None, check your JSON keys.")
+
+def calibrate_sensor(aX, aY, aZ, gX, gY, gZ, samples=50):
+    global ax_offset, ay_offset, az_offset, gx_offset, gy_offset, gz_offset, calibrated
+    if not hasattr(calibrate_sensor, "count"):
+        calibrate_sensor.count = 0
+        calibrate_sensor.ax_sum = 0
+        calibrate_sensor.ay_sum = 0
+        calibrate_sensor.az_sum = 0
+        calibrate_sensor.gx_sum = 0
+        calibrate_sensor.gy_sum = 0
+        calibrate_sensor.gz_sum = 0
+
+    calibrate_sensor.ax_sum += aX
+    calibrate_sensor.ay_sum += aY
+    calibrate_sensor.az_sum += aZ
+    calibrate_sensor.gx_sum += gX
+    calibrate_sensor.gy_sum += gY
+    calibrate_sensor.gz_sum += gZ
+    calibrate_sensor.count += 1
+
+    if calibrate_sensor.count >= samples:
+        ax_offset = calibrate_sensor.ax_sum / samples
+        ay_offset = calibrate_sensor.ay_sum / samples
+        az_offset = (calibrate_sensor.az_sum / samples) - 9800  # 假設 9800 mg 為 1g
+        gx_offset = calibrate_sensor.gx_sum / samples
+        gy_offset = calibrate_sensor.gy_sum / samples
+        gz_offset = calibrate_sensor.gz_sum / samples
+        calibrated = True
+        print("Calibration completed")
+        print(f"Offsets - Ax: {ax_offset}, Ay: {ay_offset}, Az: {az_offset}, Gx: {gx_offset}, Gy: {gy_offset}, Gz: {gz_offset}")
+
+def calculate_tilt_angles(aX, aY, aZ):
+    pitch = np.arctan2(aY, np.sqrt(aX**2 + aZ**2)) * 180 / np.pi
+    roll = np.arctan2(aX, np.sqrt(aY**2 + aZ**2)) * 180 / np.pi
+    return pitch, roll
+
+def update_movement(aX: int, aY: int, aZ: int, gX: int, gY: int, gZ: int):
+    global last_movement_time
+    threshold = 1000  # 調整閾值
+    gravity = 9.8 * 1000  # 假設加速度值是以 milli-g 為單位
+    gyro_threshold = 500  # 陀螺儀閾值
+
+    # 應用校準偏移值
+    aX -= ax_offset
+    aY -= ay_offset
+    aZ -= az_offset
+    gX -= gx_offset
+    gY -= gy_offset
+    gZ -= gz_offset
+
+    # 計算總加速度
+    total_acc = np.sqrt(aX**2 + aY**2 + aZ**2)
+    
+    # 計算俯仰角和滾轉角
+    pitch, roll = calculate_tilt_angles(aX, aY, aZ)
+
+    # 打印校準後的數據和總加速度
+    print(f"Calibrated Ax: {aX}, Ay: {aY}, Az: {aZ}, Total Acc: {total_acc}")
+    print(f"Calibrated Gx: {gX}, Gy: {gY}, Gz: {gZ}")
+    print(f"Pitch: {pitch}, Roll: {roll}")
+
+    # 判斷是否有顯著的Z軸加速度變化
+    if abs(total_acc - gravity) < threshold:
+        if abs(gX) < gyro_threshold and abs(gY) < gyro_threshold and abs(gZ) < gyro_threshold:
+            if abs(aZ - gravity) < threshold:
+                print("The device is stationary.")
+                last_movement_time = time.time()
+            else:
+                if pitch > 10 or roll > 10:  # 根據角度判斷是否站立
+                    print("The user is standing.")
+                    last_movement_time = time.time()
+                elif 0 < pitch <= 10 or 0 < roll <= 10:  # 根據角度判斷是否坐下
+                    print("The user is sitting.")
+                else:
+                    print("The user is moving.")
+                    last_movement_time = time.time()
+        else:
+            print("The user is moving.")
+        last_movement_time = time.time()
+    else:
+        print("No significant movement detected.")
+
+def check_sedentary():
+    global last_movement_time
+    while True:
+        if time.time() - last_movement_time > 300:
+            remind_user_preconfigured("久坐提醒")
+            last_movement_time = time.time()
+        time.sleep(10)
 
 def choose_random_reminder(remind_text):
     print(remind_text)
