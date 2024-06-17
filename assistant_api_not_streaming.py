@@ -142,7 +142,7 @@ if __name__ == '__main__':
     thread = client.beta.threads.create()
     thread_id = thread.id  # 取得新創建的 thread 的 ID
     # message_content = "我想要聽SHIKANOKO NOKONOKO KOSHITANTAN一小時版本"
-    message_content = "一分鐘後提醒我倒垃圾"
+    message_content = "去網路搜尋，台東秀泰影城有甚麼電影"
 
     # message_content = input()
     print(send_message_to_assistant(assistant_id, thread_id, message_content))

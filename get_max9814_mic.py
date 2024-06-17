@@ -138,7 +138,7 @@ try:
         except socket.timeout:
             timeout_counter += 1
             debug_message("Time out")
-            if timeout_counter >= 5:  # 超時計數達到5秒鐘
+            if timeout_counter >= 20:  # 超時計數達到5秒鐘
                 debug_message("Connection timed out for more than 5 seconds, closing connection")
                 connection.close()
                 connection = None

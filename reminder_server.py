@@ -28,7 +28,7 @@ last_movement_time = time.time()
 
 def play_music():
     print("Playing music...")
-    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'https://youtu.be/tL9yDq5hpgI?si=hdQRWWMUwbIfoVyc', 'type': 'youtube'})
+    response = requests.post('http://localhost:5000/switch_audio', json={'file': 'c1LjCbzUPTg', 'type': 'youtube'})
     print(response.status_code, response.text)
 
 def set_reminder(message: str, delay: int) -> str:
@@ -128,7 +128,7 @@ def set_alarm_at(month: int, day: int, hour: int, minute: int) -> str:
 def set_drink_water_reminder():
     while True:
         remind_user_preconfigured("喝水提醒")
-        time.sleep(1200)
+        time.sleep(1200) # debug
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
@@ -251,7 +251,7 @@ def check_sedentary():
     global last_movement_time
     while True:
         print("[TIME]", time.time() - last_movement_time, time.time(), last_movement_time)
-        if time.time() - last_movement_time > 300:
+        if time.time() - last_movement_time > 300: # debug
             remind_user_preconfigured("久坐提醒")
             last_movement_time = time.time()
         time.sleep(10)
@@ -357,7 +357,7 @@ if __name__ == '__main__':
     # response = set_reminder('hello world', 10)
     # print(response)
 
-    # response = set_alarm(300)
+    response = set_alarm(10)
     # print(response)
 
     # response = set_alarm_at(6, 14, 13, 0)

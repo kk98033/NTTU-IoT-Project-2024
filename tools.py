@@ -189,6 +189,13 @@ def search_youtube_and_play_first(parameters):
         print("No videos found.")
         return "No videos found."
 
+def play_youtube_url(url):
+    api_url='http://localhost:5000/switch_audio'
+    print(url)
+    response = requests.post(api_url, json={'file': url, 'type': 'youtube'})
+    print(response.status_code, response.text)
+    return f"即將播放音樂"
+
 def get_latest_coordinates_from_sheet(sheet_id, credentials_file, sheet_name="GPS"):
     # 使用憑證文件進行認證
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -455,7 +462,7 @@ def list_reminders():
         return []
     
 def outdoor_procedure():
-    procedure_text = '出門流程已經啟動(一定要說你做了什麼)，你已完成：'
+    procedure_text = '出門流程已經啟動(一定要說你做了什麼)，已經幫忙完成：'
     
     # 撥動電燈開關
     turn_off_the_light()
@@ -473,21 +480,21 @@ def outdoor_procedure():
 
 
 def home_procedure(music_name):
-    procedure_text = '回家流程已啟動(一定要說你做了什麼)，你已完成：'
+    procedure_text = '回家流程已啟動(一定要說你做了什麼)，已經幫忙完成：'
     # 撥動電燈開關
     turn_on_the_light()
     procedure_text += '1.開燈'
 
     # 播放回家提示音樂
     procedure_text += '2.播放了一首音樂'
-    procedure_text += search_youtube_and_play_first(music_name)
+    procedure_text += play_youtube_url(music_name)
 
     print(procedure_text)
     return procedure_text
 
 
 def bedtime_procedure(music_name):
-    procedure_text = '睡覺流程已啟動(一定要說你做了什麼)，你已完成：'
+    procedure_text = '睡覺流程已啟動(一定要說你做了什麼)，已經幫忙完成：'
 
     # 撥動電燈開關
     turn_off_the_light()
@@ -495,7 +502,8 @@ def bedtime_procedure(music_name):
 
     # 播放睡覺提示音樂
     procedure_text += '2.播放了一首睡覺音樂'
-    procedure_text += search_youtube_and_play_first(music_name)
+    # procedure_text += search_youtube_and_play_first(music_name)
+    procedure_text += play_youtube_url('3VAIjXvUvbI')
 
     # 列出目前的提醒事項
     reminders = list_reminders()
@@ -547,8 +555,9 @@ if __name__ == '__main__':
 
     # latest_latitude, latest_longitude = get_latest_coordinates_from_sheet(sheet_id, credentials_file)
     # print(latest_latitude, latest_longitude)
-    print(get_weather_forecast())
-
+    # print(get_weather_forecast())
+    # print(bedtime_procedure('a'))
+    print(home_procedure('a'))
     # print(analyze_temperature_and_humidity())
 
     # stop_music()
