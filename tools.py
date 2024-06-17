@@ -510,6 +510,34 @@ def bedtime_procedure(music_name):
     print(procedure_text)
     return procedure_text
 
+def send_weather_data():
+    # 定義資料
+    data = {
+        "Wx": "雲, 22",
+        "PoP": "30, 百分比",
+        "MinT": "27, C",
+        "CI": "舒適至易中暑",
+        "MaxT": "23, C"
+    }
+    # 將資料轉換為 JSON 格式
+    payload = json.dumps(data)
+    
+    # 設置 MQTT 客戶端
+    client = mqtt.Client()
+    
+    mqtt_server = "34.168.176.224"
+
+    # 連接到 MQTT 服務器
+    client.connect(mqtt_server, 1883, 60)
+    
+    # 發佈消息到指定的 topic
+    client.publish("weather", payload)
+    
+    # 斷開連接
+    client.disconnect()
+
+
+
 if __name__ == '__main__':
     # print(turn_on_the_light())
     # print(turn_off_the_light())
