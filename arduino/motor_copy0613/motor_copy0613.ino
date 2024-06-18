@@ -1,7 +1,16 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Servo.h>
+#include "DHT.h"
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <RTClib.h>
 
+#define DHTPIN D3      // 定義DHT傳感器數據引腳連接到ESP8266的D2
+#define DHTTYPE DHT11  // 如果你使用的是DHT22，將DHT11替換為DHT22
+
+// 初始化 DHT11 傳感器
+DHT dht(DHTPIN, DHTTYPE);
 const char* ssid = "SEC304";
 const char* password = "sec304sec304";
 const char* mqtt_server = "34.168.176.224";
@@ -12,7 +21,11 @@ Servo myservo;  // 創建伺服對象來控制伺服馬達
 
 int servoPin = D4;  // 伺服控制腳位
 int onPosition = 180; // ON 位置
-int offPosition = -180; // OFF 位置
+int offPosition = 0; // OFF 位置
+
+// 初始化 LCD 和 RTC
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+RTC_DS3231 rtc;
 
 void setup_wifi() {
   delay(10);
@@ -86,23 +99,111 @@ void setup() {
   myservo.attach(servoPin);  // 將伺服物件附加到伺服控制腳位
   myservo.write(offPosition); // 初始化伺服位置為 OFF
 
-  Serial.begin(57600);
+  Serial.begin(115200);
   setup_wifi();
+  dht.begin();
   if (WiFi.status() == WL_CONNECTED) {
     client.setServer(mqtt_server, 1883);
     client.setCallback(callback);
   } else {
     Serial.println("Skipping MQTT setup due to WiFi connection failure");
   }
+
+  // 初始化 LCD
+  lcd.init();
+  lcd.backlight();
+
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
+
+  // 如果 RTC 已停止，重置時間
+  if (rtc.lostPower()) {
+    Serial.println("RTC lost power, let's set the time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+}
+
+void showTemperatureHumidity() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  // 顯示溫度和濕度
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Temp: ");
+  lcd.print(t);
+  lcd.print("C");
+  lcd.setCursor(0, 1);
+  lcd.print("Humidity: ");
+  lcd.print(h);
+  lcd.print("%");
+}
+
+void showDateTime() {
+  DateTime now = rtc.now();
+
+  // 顯示日期和時間
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(now.year());
+  lcd.print('/');
+  lcd.print(now.month());
+  lcd.print('/');
+  lcd.print(now.day());
+
+  lcd.setCursor(0, 1);
+  if (now.hour() < 10) lcd.print('0');
+  lcd.print(now.hour());
+  lcd.print(':');
+  if (now.minute() < 10) lcd.print('0');
+  lcd.print(now.minute());
+  lcd.print(':');
+  if (now.second() < 10) lcd.print('0');
+  lcd.print(now.second());
 }
 
 void loop() {
+  static unsigned long lastSwitchTime = 0;
+  static bool displayTempHum = true;
+
   if (WiFi.status() == WL_CONNECTED) {
     if (!client.connected()) {
       reconnect();
     }
     client.loop();
+    
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+
+    if (!isnan(h) && !isnan(t)) {
+      String payload = "Temperature: " + String(t) + "C, Humidity: " + String(h) + "%";
+      Serial.print("Publishing message: ");
+      Serial.println(payload);
+      client.publish("esp8266/DHT11", payload.c_str());
+    } else {
+      Serial.println("Failed to read from DHT sensor!");
+    }
   } else {
     Serial.println("WiFi not connected");
   }
+
+  // 每5秒切換顯示內容
+  if (millis() - lastSwitchTime > 5000) {
+    lastSwitchTime = millis();
+    if (displayTempHum) {
+      showTemperatureHumidity();
+    } else {
+      showDateTime();
+    }
+    displayTempHum = !displayTempHum;
+  }
+  
+  delay(500); // 減少循環速度，避免顯示閃爍
 }

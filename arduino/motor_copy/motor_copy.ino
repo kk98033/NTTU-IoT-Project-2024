@@ -1,7 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Servo.h>
+#include "DHT.h"
 
+#define DHTPIN D2      // 定義DHT傳感器數據引腳連接到ESP8266的D2
+#define DHTTYPE DHT11  // 如果你使用的是DHT22，將DHT11替換為DHT22
+
+DHT dht(DHTPIN, DHTTYPE);
 const char* ssid = "SEC304";
 const char* password = "sec304sec304";
 const char* mqtt_server = "34.168.176.224";
@@ -11,8 +16,8 @@ PubSubClient client(espClient);
 Servo myservo;  // 創建伺服對象來控制伺服馬達
 
 int servoPin = D4;  // 伺服控制腳位
-int onPosition = 180; // ON 位置
-int offPosition = -180; // OFF 位置
+int onPosition = 0; // ON 位置
+int offPosition = 60; // OFF 位置
 
 void setup_wifi() {
   delay(10);
@@ -86,8 +91,9 @@ void setup() {
   myservo.attach(servoPin);  // 將伺服物件附加到伺服控制腳位
   myservo.write(offPosition); // 初始化伺服位置為 OFF
 
-  Serial.begin(57600);
+  Serial.begin(115200);
   setup_wifi();
+  dht.begin();
   if (WiFi.status() == WL_CONNECTED) {
     client.setServer(mqtt_server, 1883);
     client.setCallback(callback);
@@ -102,7 +108,21 @@ void loop() {
       reconnect();
     }
     client.loop();
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    if (isnan(h) || isnan(t)) {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
+    }
+
+    // 構建 JSON 格式的 payload
+    String payload = "{\n  \"Temperature\": \"" + String(t, 2) + "C\",\n  \"Humidity\": \"" + String(h, 2) + "%\"\n}";
+    Serial.print("Publishing message: ");
+    Serial.println(payload);
+    client.publish("esp8266/DHT11", payload.c_str());
+    delay(2000); // 延遲2秒
   } else {
     Serial.println("WiFi not connected");
   }
 }
+

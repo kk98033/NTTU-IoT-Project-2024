@@ -1,7 +1,16 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Servo.h>
+#include "DHT.h"
+#include <Wire.h>
+// #include <LiquidCrystal_I2C.h>
 
+#define DHTPIN D2      // 定義DHT傳感器數據引腳連接到ESP8266的D2
+#define DHTTYPE DHT11  // 如果你使用的是DHT22，將DHT11替換為DHT22
+// 設定 LCD 地址 (通常是 0x27 或 0x3F)
+// LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+DHT dht(DHTPIN, DHTTYPE);
 const char* ssid = "SEC304";
 const char* password = "sec304sec304";
 const char* mqtt_server = "34.168.176.224";
@@ -86,14 +95,24 @@ void setup() {
   myservo.attach(servoPin);  // 將伺服物件附加到伺服控制腳位
   myservo.write(offPosition); // 初始化伺服位置為 OFF
 
-  Serial.begin(57600);
+  Serial.begin(115200);
   setup_wifi();
+  dht.begin();
   if (WiFi.status() == WL_CONNECTED) {
     client.setServer(mqtt_server, 1883);
     client.setCallback(callback);
   } else {
     Serial.println("Skipping MQTT setup due to WiFi connection failure");
   }
+
+  // lcd.begin(16,2);
+  // lcd.backlight();
+  
+  // // 顯示訊息
+  // lcd.setCursor(0, 0);
+  // lcd.print("Hello, World!");
+  // lcd.setCursor(0, 1);
+  // lcd.print("ESP8266 LCD");
 }
 
 void loop() {
@@ -102,7 +121,21 @@ void loop() {
       reconnect();
     }
     client.loop();
+    
+    float h = dht.readHumidity();
+    float t = dht.readTemperature();
+    if (isnan(h) || isnan(t)) {
+      Serial.println("Failed to read from DHT sensor!");
+      return;
+    }
+
+    String payload = "Temperature: " + String(t) + "C, Humidity: " + String(h) + "%";
+    Serial.print("Publishing message: ");
+    Serial.println(payload);
+    client.publish("esp8266/DHT11", payload.c_str());
   } else {
     Serial.println("WiFi not connected");
   }
+  
+  delay(2000); // 延遲2秒
 }
