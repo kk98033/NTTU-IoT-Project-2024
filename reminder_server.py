@@ -354,7 +354,7 @@ def list_reminders():
     return jsonify({"status": "success", "reminders": reminder_messages})
 
 if __name__ == '__main__':
-    # response = set_reminder('hello world', 10)
+    # response = set_reminder('去上課', 20)
     # print(response)
 
     response = set_alarm(10)
